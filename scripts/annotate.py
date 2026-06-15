@@ -1,25 +1,3 @@
-#!/usr/bin/env python3
-"""
-annotate.py — Interactive CLI tool to manually label candidate relevance.
-
-Presents candidates from the top-N of your current ranker one by one.
-You assign a grade (0-3). Labels are saved to artifacts/manual_labels.json.
-
-This creates the ground truth needed for meaningful offline evaluation.
-
-Usage:
-    python scripts/annotate.py --candidates sample_candidates.json --top 50
-    python scripts/annotate.py --candidates candidates.jsonl.gz --top 200 --start 51
-
-Grades:
-    3 = Highly relevant (would shortlist to recruiter)
-    2 = Relevant (would consider)
-    1 = Borderline (maybe with more context)
-    0 = Not relevant (wrong role, wrong background)
-    s = Skip (unsure, review later)
-    q = Quit and save
-"""
-
 import argparse
 import json
 import logging
@@ -69,20 +47,20 @@ def display_candidate(cs, rank: int) -> None:
     print(f"  Location : {profile.get('location','')}, {profile.get('country','')}")
     print(f"  YoE      : {profile.get('years_of_experience',0):.1f} years")
 
-    print(f"\n  Headline : {profile.get('headline','')[:80]}")
+    print(f"\n Headline : {profile.get('headline','')[:80]}")
 
-    print(f"\n  Career History:")
+    print(f"\n Career History:")
     for r in career:
         it = any(s in (r.get("company") or "").lower() for s in IT_SERVICES_COMPANIES)
         tag = " [IT-SVC]" if it else ""
-        print(f"    {r.get('duration_months',0):3d}m  {r.get('title',''):35s}  @ {r.get('company','')}{tag}")
+        print(f" {r.get('duration_months',0):3d}m  {r.get('title',''):35s}  @ {r.get('company','')}{tag}")
 
     t1 = cs.tier1_skills[:5]
     t2 = cs.tier2_skills[:4]
-    print(f"\n  Tier-1 Skills : {', '.join(t1) if t1 else '(none)'}")
-    print(f"  Tier-2 Skills : {', '.join(t2) if t2 else '(none)'}")
+    print(f"\n Tier-1 Skills : {', '.join(t1) if t1 else '(none)'}")
+    print(f" Tier-2 Skills : {', '.join(t2) if t2 else '(none)'}")
 
-    print(f"\n  Behavioral:")
+    print(f"\n Behavioral:")
     open_w = sig.get("open_to_work_flag", False)
     days   = _days_since(sig.get("last_active_date"))
     rrr    = sig.get("recruiter_response_rate", 0)
@@ -94,7 +72,7 @@ def display_candidate(cs, rank: int) -> None:
           f"exp={cs.experience_score:.0f}  behavioral={cs.behavioral_score:.0f}  "
           f"loc={cs.location_score:.0f}")
     if cs.honeypot_flags:
-        print(f"  ⚠ Honeypot flags: {cs.honeypot_flags}")
+        print(f"Honeypot flags: {cs.honeypot_flags}")
 
     print(f"\n  Generated reasoning:")
     print(f"  {generate_reasoning(cs, rank)}")

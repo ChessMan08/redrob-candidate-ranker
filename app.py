@@ -87,6 +87,7 @@ with col2:
     )
 
 run_clicked = st.button("Run Ranker", type="primary", disabled=(raw is None))
+st.caption("If the results don't appear after the first click, click **Run Ranker** again.")
 
 # ── Run pipeline (results stored in session_state so they survive reruns
 #    triggered by st.download_button or other widget interactions) ───────

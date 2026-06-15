@@ -19,7 +19,20 @@ st.caption(
 )
 
 with st.expander("ℹ️ How this works", expanded=False):
-    st.markdown()
+    st.markdown(
+        """
+        This sandbox runs the **exact same scoring code** used to produce the
+        competition submission — no LLM calls, fully deterministic, CPU-only.
+
+        **Pipeline:** clean & normalize → score 6 weighted components
+        (career, skills, experience, behavioral, location, education) →
+        apply honeypot / behavioral / salary multipliers → optional TF-IDF
+        re-rank → generate grounded reasoning.
+
+        A `sample_candidates.json` (50 candidates) is provided in the repo —
+        you can upload that to try it immediately.
+        """
+    )
 
 uploaded = st.file_uploader(
     "Upload candidate JSON (array format, e.g. sample_candidates.json)",
@@ -75,7 +88,7 @@ if uploaded and st.button("Rank Candidates", type="primary"):
                         st.info(reason)
 
                         if cs.honeypot_flags:
-                            st.warning(f"Honeypot flags: {cs.honeypot_flags}")
+                            st.warning(f"⚠️ Honeypot flags: {cs.honeypot_flags}")
 
         except Exception as e:
             st.error(f"Error: {e}")

@@ -12,6 +12,8 @@ A production-grade candidate ranking system that scores 100,000 candidates for r
 redrob_ranker/
 ├── rank.py                        # Main inference entry point
 ├── requirements.txt
+├── app.py
+├── requirements-streamlit.txt
 ├── README.md
 │
 ├── src/

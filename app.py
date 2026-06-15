@@ -40,7 +40,7 @@ with st.expander("How this works", expanded=False):
 
 SAMPLE_PATH = Path(__file__).resolve().parent / "sample_candidates.json"
 
-# Input source
+# ── Input source ────────────────────────────────────────────────────────
 st.subheader("1. Provide candidates")
 
 source = st.radio(
@@ -72,7 +72,7 @@ else:
         else:
             st.success(f"Loaded {len(raw)} candidates.")
 
-# Options
+# ── Options ────────────────────────────────────────────────────────────
 st.subheader("2. Run ranking")
 
 col1, col2 = st.columns(2)
@@ -86,10 +86,11 @@ with col2:
         value=min(50, len(raw) if raw else 50),
     )
 
-run = st.button("Run Ranker", type="primary", disabled=(raw is None))
+run_clicked = st.button("Run Ranker", type="primary", disabled=(raw is None))
 
-# Run pipeline
-if run and raw is not None:
+# ── Run pipeline (results stored in session_state so they survive reruns
+#    triggered by st.download_button or other widget interactions) ───────
+if run_clicked and raw is not None:
     t0 = time.time()
     with st.spinner("Running ranking pipeline..."):
         cleaned = clean_candidates(raw)
@@ -119,8 +120,29 @@ if run and raw is not None:
     writer.writerows(rows)
     csv_bytes = buf.getvalue().encode("utf-8")
 
+    # Persist everything needed to render results across reruns
+    st.session_state["result"] = {
+        "scored": scored,
+        "rows": rows,
+        "csv_bytes": csv_bytes,
+        "elapsed": elapsed,
+        "actual_n": actual_n,
+        "total_scored": len(scored),
+    }
+
+# ── Render results from session_state (if any) ──────────────────────────
+result = st.session_state.get("result")
+
+if result:
+    scored = result["scored"]
+    rows = result["rows"]
+    csv_bytes = result["csv_bytes"]
+    elapsed = result["elapsed"]
+    actual_n = result["actual_n"]
+    total_scored = result["total_scored"]
+
     st.success(
-        f"Ranked {len(scored)} candidates -> top {actual_n} written to CSV "
+        f"Ranked {total_scored} candidates -> top {actual_n} written to CSV "
         f"in {elapsed:.2f} seconds (budget: 300s / 5 min)."
     )
 
@@ -135,6 +157,7 @@ if run and raw is not None:
         file_name="submission.csv",
         mime="text/csv",
         type="primary",
+        key="download_csv_btn",
     )
 
     # Validation
@@ -182,6 +205,5 @@ if run and raw is not None:
 
             if cs.honeypot_flags:
                 st.warning(f"Honeypot flags: {cs.honeypot_flags}")
-
-elif not run:
+else:
     st.info("Choose an input source, then click **Run Ranker** to produce the ranked CSV.")

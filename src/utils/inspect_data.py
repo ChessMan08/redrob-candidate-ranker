@@ -1,18 +1,3 @@
-"""
-inspect_data.py — Dataset inspection and EDA utilities.
-
-Run directly:
-    python -m src.utils.inspect_data --candidates sample_candidates.json
-
-Produces a console report covering:
-  - Dataset size and field coverage
-  - Career title and industry distributions
-  - Skill distributions (top-30)
-  - Behavioral signal summaries
-  - Data quality issues (salary inversions, YoE mismatches, etc.)
-  - Honeypot candidate candidates
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -28,11 +13,7 @@ logger = logging.getLogger(__name__)
 
 TODAY = date.today()
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _days_since(date_str: str) -> int:
     try:
         return max(0, (TODAY - date.fromisoformat(date_str)).days)
@@ -45,12 +26,8 @@ def _safe_float(v, default=0.0):
         return float(v)
     except Exception:
         return default
-
-
-# ─────────────────────────────────────────────────────────────────────────────
+        
 # Individual inspection functions
-# ─────────────────────────────────────────────────────────────────────────────
-
 def inspect_basic(candidates: List[dict]) -> None:
     print(f"\n{'='*60}")
     print(f"DATASET OVERVIEW  ({len(candidates):,} candidates)")
@@ -153,11 +130,11 @@ def inspect_behavioral(candidates: List[dict]) -> None:
     active_90 = [c for c in candidates
                  if _days_since(c["redrob_signals"].get("last_active_date","2000-01-01")) <= 90]
 
-    print(f"\n  Open to work:          {len(open_work):,}/{len(candidates):,} "
+    print(f"\n  Open to work: {len(open_work):,}/{len(candidates):,} "
           f"({100*len(open_work)/len(candidates):.0f}%)")
-    print(f"  Active in last 30d:    {len(active_30):,}/{len(candidates):,} "
+    print(f"  Active in last 30d: {len(active_30):,}/{len(candidates):,} "
           f"({100*len(active_30)/len(candidates):.0f}%)")
-    print(f"  Active in last 90d:    {len(active_90):,}/{len(candidates):,} "
+    print(f"  Active in last 90d: {len(active_90):,}/{len(candidates):,} "
           f"({100*len(active_90)/len(candidates):.0f}%)")
 
     # Notice period
@@ -165,11 +142,11 @@ def inspect_behavioral(candidates: List[dict]) -> None:
     from collections import Counter
     buckets = Counter()
     for n in notices:
-        if n == 0:        buckets["0d (immediate)"] += 1
-        elif n <= 30:     buckets["1-30d"] += 1
-        elif n <= 60:     buckets["31-60d"] += 1
-        elif n <= 90:     buckets["61-90d"] += 1
-        else:             buckets[">90d"] += 1
+        if n == 0: buckets["0d (immediate)"] += 1
+        elif n <= 30: buckets["1-30d"] += 1
+        elif n <= 60: buckets["31-60d"] += 1
+        elif n <= 90: buckets["61-90d"] += 1
+        else: buckets[">90d"] += 1
     print("\n  Notice period:")
     for bucket in ["0d (immediate)", "1-30d", "31-60d", "61-90d", ">90d"]:
         print(f"    {buckets[bucket]:5d}  {bucket}")
@@ -241,11 +218,7 @@ def inspect_data_quality(candidates: List[dict]) -> None:
     else:
         print("  No data quality issues found.")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Entry point
-# ─────────────────────────────────────────────────────────────────────────────
-
 def run_inspection(candidates: List[dict]) -> None:
     inspect_basic(candidates)
     inspect_career(candidates)

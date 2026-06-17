@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-"""
-evaluate.py — Offline evaluation: score all candidates and report metrics.
-
-Usage:
-    python scripts/evaluate.py --candidates sample_candidates.json
-    python scripts/evaluate.py --candidates candidates.jsonl.gz --tfidf --save-scores
-
-Outputs:
-    - Console evaluation report
-    - artifacts/scores.json (all candidate scores, if --save-scores)
-    - artifacts/top100_detail.json (detailed breakdown for top 100)
-"""
-
 import argparse
 import json
 import logging
@@ -92,10 +78,6 @@ def save_top100_detail(scored: list, path: Path) -> None:
 
 
 def sensitivity_analysis(scored: list) -> None:
-    """
-    Check how sensitive the top-10 is to small weight perturbations.
-    Useful to see if the ranking is stable.
-    """
     from src.config import settings
     import copy
 
@@ -116,7 +98,7 @@ def sensitivity_analysis(scored: list) -> None:
         original_weights = copy.copy(settings.WEIGHTS)
         settings.WEIGHTS.update(weights)
 
-        # Re-score all (cheaper: just recompute composite from stored component scores)
+        # Re-score all
         perturbed = []
         for cs in scored:
             composite = (

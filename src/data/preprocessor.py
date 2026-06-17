@@ -1,17 +1,3 @@
-"""
-preprocessor.py — Cleans and normalises raw candidate records.
-
-Issues handled from data inspection:
-  - salary min > max (swap them)
-  - github_activity_score = -1 (no GitHub linked) — leave as-is but document
-  - offer_acceptance_rate = -1 (no offer history) — leave as-is
-  - empty education / skills / career_history arrays
-  - missing optional fields (certifications, languages)
-  - whitespace / casing in string fields
-  - date strings that may be missing or malformed
-  - duplicate career descriptions (data-gen artifact; no fix needed, just aware)
-"""
-
 from __future__ import annotations
 
 import logging
@@ -20,11 +6,7 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
-# ──────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ──────────────────────────────────────────────────────────────────────────────
-
 def _parse_date(val: Any, field_name: str = "") -> Optional[date]:
     if val is None:
         return None
@@ -63,11 +45,7 @@ def _safe_int(val: Any, default: int = 0) -> int:
     except (TypeError, ValueError):
         return default
 
-
-# ──────────────────────────────────────────────────────────────────────────────
 # Sub-cleaners
-# ──────────────────────────────────────────────────────────────────────────────
-
 def _clean_profile(profile: Dict) -> Dict:
     return {
         "anonymized_name":    _safe_str(profile.get("anonymized_name")),
@@ -118,7 +96,7 @@ def _clean_education(education: List[Dict]) -> List[Dict]:
             "field_of_study": _safe_str(edu.get("field_of_study")).lower(),
             "start_year":     _safe_int(edu.get("start_year"), 0),
             "end_year":       _safe_int(edu.get("end_year"), 0),
-            "grade":          edu.get("grade"),   # keep raw; we won't parse it
+            "grade":          edu.get("grade"),
             "tier":           _safe_str(edu.get("tier"), "unknown"),
         })
     return cleaned
@@ -130,11 +108,11 @@ def _clean_skills(skills: List[Dict]) -> List[Dict]:
     for sk in (skills or []):
         name = _safe_str(sk.get("name")).lower()
         if not name or name in seen_names:
-            continue  # skip empty or duplicate skill names
+            continue 
         seen_names.add(name)
         cleaned.append({
             "name":           name,
-            "name_raw":       _safe_str(sk.get("name")),   # preserve original for display
+            "name_raw":       _safe_str(sk.get("name")), 
             "proficiency":    _safe_str(sk.get("proficiency"), "beginner").lower(),
             "endorsements":   max(0, _safe_int(sk.get("endorsements"), 0)),
             "duration_months":max(0, _safe_int(sk.get("duration_months"), 0)),
@@ -166,17 +144,17 @@ def _clean_languages(langs: List[Dict]) -> List[Dict]:
 
 
 def _clean_signals(sig: Dict) -> Dict:
-    # Fix inverted salary (data quality issue found in ~30% of sample)
+    # Fix inverted salary
     sal = sig.get("expected_salary_range_inr_lpa", {}) or {}
     sal_min = _safe_float(sal.get("min"), 0.0)
     sal_max = _safe_float(sal.get("max"), 0.0)
     if sal_min > sal_max and sal_max > 0:
         sal_min, sal_max = sal_max, sal_min
 
-    # github_activity_score: -1 means no GitHub linked (schema-defined)
+    # github_activity_score: -1 means no GitHub linked
     github = _safe_float(sig.get("github_activity_score"), -1.0)
 
-    # offer_acceptance_rate: -1 means no history (schema-defined)
+    # offer_acceptance_rate: -1 means no history
     oar = _safe_float(sig.get("offer_acceptance_rate"), -1.0)
 
     return {
@@ -206,16 +184,8 @@ def _clean_signals(sig: Dict) -> Dict:
         "linkedin_connected": bool(sig.get("linkedin_connected", False)),
     }
 
-
-# ──────────────────────────────────────────────────────────────────────────────
 # Public API
-# ──────────────────────────────────────────────────────────────────────────────
-
 def clean_candidate(raw: Dict) -> Dict:
-    """
-    Normalise a raw candidate dict into a clean, typed record.
-    Never raises — returns a best-effort clean record.
-    """
     return {
         "candidate_id":   _safe_str(raw.get("candidate_id")),
         "profile":        _clean_profile(raw.get("profile") or {}),

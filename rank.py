@@ -1,27 +1,3 @@
-#!/usr/bin/env python3
-"""
-rank.py — Main inference script for the Redrob hackathon.
-
-Produces a valid submission.csv from candidates.jsonl.gz in < 5 minutes
-on CPU with 16 GB RAM and no network access.
-
-Usage:
-    python rank.py --candidates ./candidates.jsonl.gz --out ./submission.csv
-
-Advanced:
-    python rank.py \\
-        --candidates ./candidates.jsonl.gz \\
-        --out ./submission.csv \\
-        --workers 8 \\
-        --tfidf           \\   # enable TF-IDF re-ranking (adds ~10s)
-        --no-parallel         # force single-process mode (safer, slightly slower)
-
-Exit codes:
-    0 = success, submission written and validated
-    1 = validation failed (CSV format errors)
-    2 = runtime error
-"""
-
 import argparse
 import logging
 import sys
@@ -50,14 +26,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("rank")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Pipeline steps
-# ─────────────────────────────────────────────────────────────────────────────
-
 def step_load(candidates_path: str, max_records: int | None) -> list:
     t0 = time.time()
-    logger.info("Step 1/6 — Loading candidates from %s", candidates_path)
+    logger.info("Step 1/6 - Loading candidates from %s", candidates_path)
     raw = load_candidates(candidates_path, max_records=max_records)
     raw = deduplicate(raw)
     logger.info("  Loaded %d candidates in %.1fs", len(raw), time.time() - t0)
@@ -66,7 +38,7 @@ def step_load(candidates_path: str, max_records: int | None) -> list:
 
 def step_clean(raw: list) -> list:
     t0 = time.time()
-    logger.info("Step 2/6 — Cleaning and normalising ...")
+    logger.info("Step 2/6 - Cleaning and normalising ...")
     cleaned = clean_candidates(raw)
     logger.info("  Cleaned %d records in %.1fs", len(cleaned), time.time() - t0)
     return cleaned
@@ -74,14 +46,11 @@ def step_clean(raw: list) -> list:
 
 def step_score(cleaned: list, use_parallel: bool, n_workers: int) -> list:
     t0 = time.time()
-    logger.info("Step 3/6 — Scoring candidates (%s, workers=%d) ...",
+    logger.info("Step 3/6 - Scoring candidates (%s, workers=%d) ...",
                 "parallel" if use_parallel else "sequential", n_workers)
 
     if use_parallel and len(cleaned) > 1000:
         from src.utils.parallel import parallel_score
-        # parallel_score takes raw dicts; we already cleaned, so pass cleaned as-is
-        # (parallel_score calls clean_candidate internally, but we can also
-        # use sequential_score on already-cleaned data — cleaner path below)
         scored = score_candidates(cleaned, show_progress=True)
     else:
         scored = score_candidates(cleaned, show_progress=True)
@@ -92,18 +61,18 @@ def step_score(cleaned: list, use_parallel: bool, n_workers: int) -> list:
 
 def step_tfidf_rerank(scored: list, top_n: int = 500) -> list:
     t0 = time.time()
-    logger.info("Step 4/6 — TF-IDF re-ranking top %d candidates ...", top_n)
+    logger.info("Step 4/6 - TF-IDF re-ranking top %d candidates ...", top_n)
     try:
         from src.retrieval.tfidf_reranker import tfidf_rerank
         scored = tfidf_rerank(scored, top_n=top_n)
-        logger.info("  TF-IDF re-rank done in %.1fs", time.time() - t0)
+        logger.info(" TF-IDF re-rank done in %.1fs", time.time() - t0)
     except Exception as exc:
-        logger.warning("  TF-IDF re-rank failed (%s), using structured scores only.", exc)
+        logger.warning(" TF-IDF re-rank failed (%s), using structured scores only.", exc)
     return scored
 
 
 def step_evaluate(scored: list) -> None:
-    logger.info("Step 5/6 — Building evaluation report ...")
+    logger.info("Step 5/6 - Building evaluation report ...")
     manual_labels = load_manual_labels()
     honeypot_ids  = load_honeypot_ids()
     report = build_evaluation_report(scored, manual_labels, honeypot_ids)
@@ -112,7 +81,7 @@ def step_evaluate(scored: list) -> None:
 
 def step_write(scored: list, out_path: str) -> int:
     t0 = time.time()
-    logger.info("Step 6/6 — Writing submission to %s ...", out_path)
+    logger.info("Step 6/6 - Writing submission to %s ...", out_path)
     path = write_submission(scored, out_path, top_n=100)
 
     # Validate locally before returning
@@ -123,15 +92,11 @@ def step_write(scored: list, out_path: str) -> int:
             logger.error("  - %s", e)
         return 1
 
-    logger.info("  Submission written and validated in %.1fs", time.time() - t0)
-    logger.info("  → %s  (run validate_submission.py for official check)", path)
+    logger.info(" Submission written and validated in %.1fs", time.time() - t0)
+    logger.info(" -> %s  (run validate_submission.py for official check)", path)
     return 0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Main
-# ─────────────────────────────────────────────────────────────────────────────
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Redrob hackathon candidate ranker",

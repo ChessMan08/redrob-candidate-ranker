@@ -1,7 +1,3 @@
-"""
-tests/test_metrics.py — Unit tests for evaluation metrics.
-"""
-
 import sys
 from pathlib import Path
 

@@ -1,18 +1,3 @@
-"""
-reasoning.py — Generate 1-2 sentence reasoning strings for each ranked candidate.
-
-Design rules (directly from submission_spec.md Stage 4 requirements):
-  1. Every claim MUST be grounded in actual candidate data (no hallucination).
-  2. Reference specific facts: title, YoE, company, named skills, signal values.
-  3. Connect to specific JD requirements (not generic praise).
-  4. Acknowledge concerns honestly (high notice period, bad response rate, etc.).
-  5. Tone must match the rank (rank-1 should read positively; rank-95 honestly).
-  6. Each reasoning must be substantially different (not templated).
-
-Implementation: purely deterministic — values are pulled from the scored
-CandidateScore object, which holds the original candidate dict.  No LLM calls.
-"""
-
 from __future__ import annotations
 
 from datetime import date
@@ -25,11 +10,7 @@ from src.config.settings import (
     TODAY,
 )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _days_since(d: Optional[date]) -> int:
     if d is None:
         return 999
@@ -96,10 +77,6 @@ def _availability_phrase(sig: dict) -> str:
 
 
 def _concern_phrase(cs: CandidateScore) -> Optional[str]:
-    """
-    Returns a concern string if there's something honest to flag,
-    or None if no significant concerns.
-    """
     profile = cs.candidate["profile"]
     sig     = cs.candidate["redrob_signals"]
     career  = cs.candidate["career_history"]
@@ -142,15 +119,8 @@ def _concern_phrase(cs: CandidateScore) -> Optional[str]:
         return None
     return concerns[0]  # Surface only the top concern to keep it concise
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Main reasoning builder
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Main reasoning builde
 def generate_reasoning(cs: CandidateScore, rank: int) -> str:
-    """
-    Returns a 1-2 sentence reasoning string grounded in candidate data.
-    """
     c       = cs.candidate
     profile = c["profile"]
     sig     = c["redrob_signals"]
@@ -197,18 +167,11 @@ def generate_reasoning(cs: CandidateScore, rank: int) -> str:
 
     return f"{s1} {s2}"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Batch reasoning for the top-N submission rows
-# ─────────────────────────────────────────────────────────────────────────────
-
 def generate_all_reasoning(
     scored: List[CandidateScore],
     top_n: int = 100,
 ) -> List[str]:
-    """
-    Returns reasoning strings for the top_n candidates (already sorted).
-    """
     return [
         generate_reasoning(cs, rank=i + 1)
         for i, cs in enumerate(scored[:top_n])

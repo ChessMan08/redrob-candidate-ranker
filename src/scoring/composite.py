@@ -1,18 +1,3 @@
-"""
-composite.py — Assembles all feature scores into a single composite score.
-
-Pipeline per candidate:
-  1. Extract feature scores (career, skills, experience, behavioral, location, education)
-  2. Compute weighted composite
-  3. Apply honeypot multiplier
-  4. Apply behavioral hard-gate multiplier (for extreme unavailability)
-  5. Apply salary-fit multiplier (mild)
-  6. Return CandidateScore dataclass with all fields for downstream use
-
-This is the single integration point — evaluation, re-ranking, and
-reasoning generation all call into this module.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,11 +15,7 @@ from src.features.profile_features import (
 )
 from src.features.honeypot_detector import detect_honeypot
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Output dataclass
-# ─────────────────────────────────────────────────────────────────────────────
-
 @dataclass
 class CandidateScore:
     candidate_id: str
@@ -78,15 +59,9 @@ class CandidateScore:
             "tier1_skills":       ",".join(self.tier1_skills),
         }
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Per-candidate scorer
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_candidate(candidate: Dict) -> CandidateScore:
-    """
-    Full scoring pipeline for a single cleaned candidate.
-    """
+    """Full scoring pipeline for a single cleaned candidate."""
     cid    = candidate["candidate_id"]
     profile= candidate["profile"]
     sig    = candidate["redrob_signals"]
@@ -121,15 +96,11 @@ def score_candidate(candidate: Dict) -> CandidateScore:
 
     # ── Clip to [0, 100] ──────────────────────────────────────────
     composite = min(100.0, max(0.0, composite))
-
-    # ── Skills minimum gate: a candidate with essentially zero ML/retrieval
-    #    skills cannot be a strong fit for this role, regardless of company.
+  
     #    Cap composite to 45 if skills_score < 5 (no credentialed ML skills).
     if skills_s < 5.0:
         composite = min(composite, 45.0)
 
-    # ── GitHub tiebreaker: for top candidates who are otherwise equal,
-    #    GitHub activity is the best external-validation signal.
     #    Add a small bonus (max 2.0 pts) to separate closely-ranked candidates.
     github = sig.get("github_activity_score", -1.0)
     if github >= 0:
@@ -160,19 +131,11 @@ def score_candidate(candidate: Dict) -> CandidateScore:
         candidate           = candidate,
     )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Batch scorer (with optional progress)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_candidates(
     candidates: List[Dict],
     show_progress: bool = False,
 ) -> List[CandidateScore]:
-    """
-    Score a list of cleaned candidates.
-    Returns CandidateScore objects sorted by composite descending.
-    """
     scores: List[CandidateScore] = []
 
     iterator = candidates

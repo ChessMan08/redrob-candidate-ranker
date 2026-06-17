@@ -1,6 +1,6 @@
 # Redrob Candidate Ranker
 
-**Intelligent Candidate Discovery & Ranking — Hackathon Submission**
+**Intelligent Candidate Discovery & Ranking**
 
 A production-grade candidate ranking system that scores 100,000 candidates for role fit using a multi-signal structured scorer with TF-IDF re-ranking. Runs in **< 3 minutes** on CPU with 16 GB RAM, no GPU, no network access during inference.
 

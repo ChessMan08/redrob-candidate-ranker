@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""
-inspect.py — Run EDA and data quality checks on the candidate dataset.
-
-Usage:
-    python scripts/inspect.py --candidates sample_candidates.json
-    python scripts/inspect.py --candidates candidates.jsonl.gz --max 5000
-"""
-
 import argparse
 import sys
 from pathlib import Path

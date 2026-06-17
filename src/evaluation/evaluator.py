@@ -1,16 +1,3 @@
-"""
-evaluator.py — Offline evaluation harness.
-
-Without ground-truth labels we do three things:
-  1. Proxy evaluation  — use our own composite scores as pseudo-labels
-     (lower-bound signal; useful for detecting regressions between runs).
-  2. Manual-annotation evaluation — if manual_labels.json exists in
-     artifacts/, use those grades as ground truth.
-  3. Cross-validation over sub-sampled JD variants — score sensitivity analysis.
-
-Run via:  python scripts/evaluate.py --candidates sample_candidates.json
-"""
-
 from __future__ import annotations
 
 import json
@@ -31,25 +18,8 @@ from src.config.settings import ARTIFACTS_DIR
 
 logger = logging.getLogger(__name__)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Label loading
-# ─────────────────────────────────────────────────────────────────────────────
-
 def load_manual_labels(path: Optional[Path] = None) -> Optional[Dict[str, float]]:
-    """
-    Load manually annotated relevance grades from a JSON file.
-
-    Expected format:
-      {
-        "CAND_0000031": 3,
-        "CAND_0000015": 2,
-        "CAND_0000002": 0,
-        ...
-      }
-
-    Returns None if the file doesn't exist.
-    """
     path = path or (ARTIFACTS_DIR / "manual_labels.json")
     if not path.exists():
         logger.info("No manual labels found at %s", path)
@@ -63,32 +33,19 @@ def load_manual_labels(path: Optional[Path] = None) -> Optional[Dict[str, float]
 
 
 def load_honeypot_ids(path: Optional[Path] = None) -> set:
-    """
-    Load known honeypot candidate IDs from a JSON list file.
-    File format: ["CAND_0000042", "CAND_0000099", ...]
-    """
     path = path or (ARTIFACTS_DIR / "honeypot_ids.json")
     if not path.exists():
         return set()
     with open(path) as f:
         return set(json.load(f))
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Evaluation report builder
-# ─────────────────────────────────────────────────────────────────────────────
-
 def build_evaluation_report(
     scored: List[CandidateScore],
     manual_labels: Optional[Dict[str, float]] = None,
     honeypot_ids: Optional[set] = None,
     top_n: int = 100,
 ) -> Dict:
-    """
-    Build a full evaluation report.
-
-    Returns a dict with all metric values and diagnostic info.
-    """
     ranked_ids    = [cs.candidate_id for cs in scored]
     top_n_ids     = ranked_ids[:top_n]
     all_composites= [cs.composite for cs in scored]
@@ -100,7 +57,7 @@ def build_evaluation_report(
     report["score_distribution_all"]   = score_diagnostics(all_composites)
     report["score_distribution_top100"]= score_diagnostics(top_composites)
 
-    # ── Gap between rank-1 and rank-10 (good models have large gaps) ──
+    # ── Gap between rank-1 and rank-10 ───────────────────────────
     if len(scored) >= 10:
         report["rank1_score"]  = round(scored[0].composite, 4)
         report["rank10_score"] = round(scored[9].composite, 4)
@@ -127,7 +84,7 @@ def build_evaluation_report(
             honeypot_rate_in_top_k(ranked_ids, honeypot_ids, 100), 4
         )
 
-    # ── Proxy-label metrics (always computable) ──────────────────
+    # ── Proxy-label metrics ────────────────────────────────────
     proxy_map = make_proxy_relevance_map(
         [{"candidate_id": cs.candidate_id, "composite": cs.composite} for cs in scored]
     )
@@ -136,7 +93,7 @@ def build_evaluation_report(
     proxy_metrics = composite_score(ranked_ids, proxy_map, proxy_rel_ids)
     report["proxy_metrics"] = proxy_metrics
 
-    # ── Manual-label metrics (if available) ─────────────────────
+    # ── Manual-label metrics ───────────────────────────────────
     if manual_labels:
         manual_rel_ids = {cid for cid, g in manual_labels.items() if g >= 3}
         manual_metrics = composite_score(ranked_ids, manual_labels, manual_rel_ids)
@@ -208,12 +165,12 @@ def print_evaluation_report(report: Dict) -> None:
     print(f"  Flagged in top-100: {report.get('honeypot_flagged_in_top100',0)}")
     if report.get("known_honeypot_rate_top100") is not None:
         rate = report["known_honeypot_rate_top100"]
-        status = "✓ OK" if rate <= 0.10 else "✗ DISQUALIFIED (>10%)"
+        status = "OK" if rate <= 0.10 else "DISQUALIFIED (>10%)"
         print(f"  Known honeypot rate in top-100: {rate:.1%}  {status}")
 
     print("\n── Top-10 Candidates ───────────────────────────────────────────")
     for row in report.get("top10", []):
-        flags = f" ⚠ {row['honeypot_flags']}" if row["honeypot_flags"] else ""
+        flags = f"{row['honeypot_flags']}" if row["honeypot_flags"] else ""
         print(
             f"  #{row['rank']:2d} {row['id']}  {row['title'][:30]:30s}  "
             f"YoE={row['yoe']:.1f}  score={row['composite']:.1f}  "

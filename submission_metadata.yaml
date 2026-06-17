@@ -1,0 +1,100 @@
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "YC"  # Used in leaderboard and announcements
+
+primary_contact:
+  name: "Abhinav Sharma"
+  email: "abhisharma.dhaka@gmail.com"   # Used for all organizer communication
+  phone: "+91-6201817102"        # Used for top-50 / top-10 outreach
+
+team_members:
+  - name: "Abhinav Sharma"
+    email: "abhisharma.dhaka@gmail.com"
+    role: "Team Lead"
+  - name: "Rachana S Shetty"
+    email: "rstms345@gmail.com"
+    role: "Data Engineer"          # Optional, e.g. "Team Lead", "Backend", "Data"
+  # Add more members as needed; solo participants list just one member
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/ChessMan08/redrob-candidate-ranker"
+# Required. Must be reachable. Private repos OK if you can grant organizer
+# access at Stage 3 (the email to add will be communicated then).
+
+sandbox_link: "https://redrob-candidate-ranker-1289.streamlit.app"
+# Required. A working hosted environment where the ranker can be run on a small
+# candidate sample. See Section 10.5 of submission_spec.md for acceptable
+# platforms (HuggingFace Spaces, Streamlit Cloud, Replit, Colab, Docker, Binder).
+
+reproduce_command: "python rank.py --candidates candidates.jsonl --out submission.csv --tfidf --workers 8"
+# The single command that produces submission.csv from candidates.jsonl.
+# Should run end-to-end within 5 minutes on CPU with 16GB RAM and no network.
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "HP Pavilion 14 (Intel Core i5-1235U, 12th Gen)"     # Or: "AWS EC2 c5.4xlarge", "Local Linux box", etc.
+  cpu_cores: 8                                  # Number of CPU cores used
+  ram_gb: 16                                    # Available RAM in GB
+  python_version: "3.14.3"                      # python --version
+  os: "Windows 11 10.0.26200"                   # Or "Ubuntu 22.04 LTS", etc.
+  uses_gpu_for_inference: false                 # Must be false — see compute constraints
+  has_network_during_ranking: false             # Must be false — no API calls during ranking
+  pre_computation_required: false               # true if you pre-compute embeddings or train models offline
+  pre_computation_time_minutes: 0               # Approximate, if applicable
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+# Transparency only — declared use is NOT penalized. Be honest. Stage 5 interview
+# may verify these declarations against your code; declarations that contradict
+# your code or your interview are flagged.
+ai_tools_used:
+  - "Claude"        # e.g. for architecture discussion, code review
+  # Other options: "ChatGPT", "Cursor", "Gemini", "Codeium", "Other", "None"
+
+ai_usage_summary: |
+  - Used Claude for end-to-end architecture design discussion, few code generation (show_top100, check_honeypots), and debugging 
+  of the ranking pipeline (feature scorers, honeypot detection, TF-IDF re-ranking, evaluation metrics, and the Streamlit sandbox). 
+  
+  - Claude was also used to review output quality (top-10 sanity checks, score-gap analysis) and iterate on scoring
+  weights based on real run results. 
+  
+  - No candidate data was sent to any external LLM API during actual ranking. The deployed rank.py pipeline is fully
+  deterministic and makes zero network or API calls at inference time.
+  
+
+# ============================================================================
+# Approach summary (optional but recommended)
+# ============================================================================
+methodology_summary: |
+  
+  "Deterministic, multi-signal ranking engine. Six weighted scoring components -
+  career trajectory (35%), skills credibility (30%), experience fit (13%),
+  behavioral availability (12%), location (6%), education (4%) - combined into
+  a composite score per candidate. Career trajectory is the decisive signal
+  against IT-services and non-ML-title false positives; skills only count if
+  backed by real usage (duration + endorsements + Redrob assessment score),
+  defeating keyword-stuffer traps. Multiplicative adjustments apply a graded
+  honeypot penalty (0.2-1.0) for inconsistent profiles, a behavioral hard-gate
+  for extreme unavailability, and a small GitHub-activity tiebreaker. Top-500
+  candidates are re-ranked via TF-IDF cosine similarity against a JD-intent
+  representation (75% structured / 25% TF-IDF blend) to separate near-tied
+  top scorers. Reasoning strings are template-generated directly from each
+  candidate's own cleaned fields - zero LLM calls, zero hallucination risk.
+  Runtime: ~40 seconds for 100,000 candidates on 8-core CPU, well under the
+  5-minute budget."
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true        # I have read submission_spec.md in full
+  code_is_original_work: true       # My code is my team's original work (using AI as a tool is fine)
+  no_collusion: true                # I have not coordinated my submission with other teams
+  honeypot_check_done: true        # OPTIONAL — set true if you explicitly checked for honeypots in your ranking
+  reproduction_tested: true         # I have tested that my reproduce_command runs end-to-end

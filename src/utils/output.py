@@ -1,11 +1,3 @@
-"""
-output.py — Submission CSV writer.
-
-Produces exactly the format required by validate_submission.py:
-  Row 1:    candidate_id,rank,score,reasoning
-  Rows 2+:  100 data rows, scores non-increasing, ranks 1-100 unique
-"""
-
 from __future__ import annotations
 
 import csv
@@ -26,26 +18,13 @@ def write_submission(
     out_path: str | Path,
     top_n: int = 100,
 ) -> Path:
-    """
-    Write the top_n candidates to a submission CSV.
-
-    Parameters
-    ----------
-    scored   : CandidateScore list sorted by composite descending
-    out_path : output file path (must end in .csv)
-    top_n    : number of candidates to write (default 100)
-
-    Returns
-    -------
-    Path to the written file.
-    """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     actual_n = min(top_n, len(scored))
     if actual_n < top_n:
         logger.warning(
-            "Only %d candidates scored — writing %d rows (need %d for a valid submission).",
+            "Only %d candidates scored - writing %d rows (need %d for a valid submission).",
             len(scored), actual_n, top_n,
         )
 
@@ -79,10 +58,6 @@ def write_submission(
 
 
 def validate_submission_locally(csv_path: str | Path) -> List[str]:
-    """
-    Run the same checks as validate_submission.py.
-    Returns a list of error strings (empty = valid).
-    """
     import re
     path   = Path(csv_path)
     errors = []
@@ -111,7 +86,7 @@ def validate_submission_locally(csv_path: str | Path) -> List[str]:
         return errors
 
     if len(data_rows) != 100:
-        errors.append(f"Expected 100 data rows, found {len(data_rows)} — OK for dev/sample runs, required for final submission")
+        errors.append(f"Expected 100 data rows, found {len(data_rows)} - OK for dev/sample runs, required for final submission")
 
     seen_ids   = set()
     seen_ranks = set()

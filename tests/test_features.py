@@ -1,9 +1,3 @@
-"""
-tests/test_features.py — Unit tests for feature scoring functions.
-
-Run with:  pytest tests/ -v
-"""
-
 import sys
 from pathlib import Path
 
@@ -31,11 +25,7 @@ from src.features.profile_features import (
 from src.features.honeypot_detector import detect_honeypot
 from src.data.preprocessor import clean_candidate
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
-# ─────────────────────────────────────────────────────────────────────────────
-
 def make_role(company="Swiggy", title="ML Engineer", industry="food delivery",
               company_size="1001-5000", duration=24, is_current=True,
               description="Built ranking and recommendation systems using FAISS and embeddings."):
@@ -92,11 +82,7 @@ def make_signal(**kwargs):
     defaults.update(kwargs)
     return defaults
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Career feature tests
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestCareerFeatures:
 
     def test_product_company_ml_title_scores_high(self):
@@ -156,11 +142,7 @@ class TestCareerFeatures:
         score_no, _   = score_career(career_no_desc)
         assert score_with > score_no, "ML keywords in description should boost score"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Skill feature tests
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestSkillFeatures:
 
     def test_tier1_skills_score_high(self):
@@ -219,11 +201,7 @@ class TestSkillFeatures:
         assert "FAISS" in t1
         assert "Python" not in t1   # Python is Tier-2, not Tier-1
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Behavioral feature tests
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestBehavioralFeatures:
 
     def test_active_open_high_rrr_scores_high(self):
@@ -272,11 +250,7 @@ class TestBehavioralFeatures:
         mult = behavioral_multiplier(sig)
         assert mult <= 0.5, f"Dark candidate multiplier should be <=0.5, got {mult}"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Profile feature tests
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestProfileFeatures:
 
     def test_experience_sweet_spot(self):
@@ -319,11 +293,7 @@ class TestProfileFeatures:
         score, _ = score_education([])
         assert score == 50.0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Honeypot detector tests
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestHoneypotDetector:
 
     def _make_candidate(self, skills, career=None, yoe=6.0):
@@ -378,11 +348,7 @@ class TestHoneypotDetector:
         mult, _ = detect_honeypot(c)
         assert mult >= 0.20
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Integration test: preprocessor + scorer
-# ─────────────────────────────────────────────────────────────────────────────
-
 class TestEndToEnd:
 
     def _raw_candidate(self, cid="CAND_0000001"):

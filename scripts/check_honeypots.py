@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""
-check_honeypots.py — Show exactly which candidates in your top-100
-are flagged as honeypots, and why.
-
-Usage:
-    python scripts/check_honeypots.py --candidates candidates.jsonl
-"""
-
 import argparse
 import sys
 from pathlib import Path
@@ -47,12 +39,12 @@ def main():
     if len(flagged) <= 10:
         print(f"Status:  SAFE  ({len(flagged)}/10)")
     else:
-        print(f"Status:  *** DISQUALIFIED *** — reduce flagged count below 10")
+        print(f"Status:  *** DISQUALIFIED *** - reduce flagged count below 10")
 
     # ── Detail on each flagged candidate ─────────────────────────────────────
     if flagged:
         print(f"\n{'='*65}")
-        print("FLAGGED CANDIDATES — DETAIL")
+        print("FLAGGED CANDIDATES - DETAIL")
         print(f"{'='*65}")
         for rank, cs in enumerate(top100, 1):
             if not cs.honeypot_flags:
@@ -62,10 +54,10 @@ def main():
             sig = c["redrob_signals"]
 
             print(f"\nRank {rank:3d} | {cs.candidate_id}")
-            print(f"  Title   : {p.get('current_title')} @ {p.get('current_company')}")
-            print(f"  YoE     : {p.get('years_of_experience'):.1f}  "
-                  f"Score: {cs.composite:.2f}  hp_mult: {cs.honeypot_multiplier:.3f}")
-            print(f"  Flags   : {cs.honeypot_flags}")
+            print(f"Title : {p.get('current_title')} @ {p.get('current_company')}")
+            print(f"YoE : {p.get('years_of_experience'):.1f}  "
+                  f"Score : {cs.composite:.2f}  hp_mult: {cs.honeypot_multiplier:.3f}")
+            print(f"Flags : {cs.honeypot_flags}")
 
             # Show the specific skills causing flags
             assessments = sig.get("skill_assessment_scores", {}) or {}
@@ -90,16 +82,16 @@ def main():
                     reasons.append(f"advanced but assessment={assess:.0f}/100")
 
                 if is_suspicious:
-                    print(f"    ⚠  {name:30s} {prof:12s} dur={dur}m  end={end}  {' | '.join(reasons)}")
+                    print(f"{name:30s} {prof:12s} dur={dur}m  end={end}  {' | '.join(reasons)}")
 
             print(f"\n  Decision: ", end="")
             if cs.honeypot_multiplier < 0.5:
-                print("STRONG honeypot signal — score already penalised by "
+                print("STRONG honeypot signal - score already penalised by "
                       f"{(1-cs.honeypot_multiplier)*100:.0f}%. Consider removing from top-100.")
             elif cs.honeypot_multiplier < 0.8:
-                print("MODERATE signal — score penalised, likely OK to keep if career/skills are genuine.")
+                print("MODERATE signal - score penalised, likely OK to keep if career/skills are genuine.")
             else:
-                print("MILD signal — minor flag, safe to keep.")
+                print("MILD signal - minor flag, safe to keep.")
 
     # ── Also show what's NOT in top-100 that should be ───────────────────────
     print(f"\n{'='*65}")

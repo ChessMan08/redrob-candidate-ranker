@@ -1,24 +1,3 @@
-"""
-career_features.py — Career trajectory scorer.
-
-This is the single most important feature for this JD.
-
-The JD explicitly disqualifies:
-  - Entire careers at IT services / consulting (TCS, Infosys, Wipro, etc.)
-  - Candidates who have never shipped a production ML system
-  - "Pure architect" types who haven't written code in 18+ months
-
-The JD positively values:
-  - Product company experience
-  - ML/search/ranking/recommendation titles
-  - Smaller startup experience (51-500 headcount) in relevant industries
-
-Algorithm:
-  - Score each role [0-100] based on company type, industry, title
-  - Weight by that role's share of total career tenure (time-weighted)
-  - Return the weighted sum, clipped to [0, 100]
-"""
-
 from __future__ import annotations
 
 from typing import Dict, List, Tuple
@@ -33,15 +12,8 @@ from src.config.settings import (
     DOMAIN_KEYWORDS_IN_DESCRIPTION,
 )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Company classifier
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _classify_company(company_lower: str, company_size: str) -> Tuple[float, str]:
-    """
-    Returns (score_delta, label) for a company name.
-    """
     # Exact / substring match against known lists
     if any(s in company_lower for s in IT_SERVICES_COMPANIES):
         return -30.0, "it_services"
@@ -54,14 +26,10 @@ def _classify_company(company_lower: str, company_size: str) -> Tuple[float, str
     if company_size in ("1-10", "11-50"):
         return +8.0, "product_very_small"
     if company_size in ("1001-5000", "5001-10000", "10001+"):
-        return +3.0, "large_unknown"   # large company; could be product or services
+        return +3.0, "large_unknown"  
     return 0.0, "unknown"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Industry classifier
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _classify_industry(industry_lower: str) -> float:
     if any(g in industry_lower for g in GOOD_INDUSTRIES):
         return +12.0
@@ -69,11 +37,7 @@ def _classify_industry(industry_lower: str) -> float:
         return -15.0
     return 0.0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Title classifier
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _classify_title(title_lower: str) -> Tuple[float, str]:
     if any(t in title_lower for t in ML_TITLE_TERMS):
         return +22.0, "ml_title"
@@ -84,36 +48,15 @@ def _classify_title(title_lower: str) -> Tuple[float, str]:
         return +4.0, "adjacent_title"
     return 0.0, "neutral_title"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Description keyword signal (supplementary — catches unlabelled ML work)
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Description keyword signal
 def _description_ml_signal(description: str) -> float:
-    """
-    Returns a small bonus [0, 10] if the role description mentions
-    ML/retrieval/ranking keywords, even if the title doesn't.
-    """
     desc_lower = description.lower()
     hits = sum(1 for kw in DOMAIN_KEYWORDS_IN_DESCRIPTION if kw in desc_lower)
     # Cap at 5 keywords for bonus purposes
     return min(10.0, hits * 2.0)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_career(career_history: List[Dict]) -> Tuple[float, Dict]:
-    """
-    Compute a weighted career trajectory score in [0, 100].
-
-    Returns
-    -------
-    (score, breakdown)
-      score     : float in [0, 100]
-      breakdown : dict with per-role details for debugging
-    """
     if not career_history:
         return 20.0, {"reason": "no_career_history"}
 
@@ -180,7 +123,7 @@ def score_career(career_history: List[Dict]) -> Tuple[float, Dict]:
 
     # Title-coherence penalty: if the majority of tenure is in non-ML titles
     # (Frontend, Java, QA, Mobile, DevOps) with no ML title history,
-    # the company-prestige boost is misleading — penalise it.
+    # the company-prestige boost is misleading - penalise it.
     if ml_title_months == 0 and non_ml_title_months > total_months * 0.5:
         final *= 0.75
         breakdown.append({"note": f"non_ml_title_majority_penalty "

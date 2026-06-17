@@ -1,29 +1,3 @@
-#!/usr/bin/env python3
-"""
-tune_weights.py — Grid-search weight tuning using proxy relevance labels.
-
-Since there are no ground-truth labels, we use the following weak-supervision
-strategy:
-
-  1. Score ALL candidates with the current weights → get composite scores.
-  2. Treat the top-K of the STRUCTURED score as "highly relevant" (grade 3),
-     next K as "relevant" (grade 2), etc.
-  3. For each weight perturbation, re-compute the composite using STORED
-     component scores (free — no re-extraction needed).
-  4. Measure NDCG@10 against those proxy labels.
-  5. Report best weight configuration found.
-
-Limitation: this finds weights that self-consistently rank the same
-candidates high — it's a consistency check, not a ground-truth optimisation.
-The practical value: it can reveal if career weight is too low (the skilled
-ML engineer who spent 1 year at TCS gets buried) or behavioral weight is
-too high (we rank unavailable people too low).
-
-Usage:
-    python scripts/tune_weights.py --candidates sample_candidates.json
-    python scripts/tune_weights.py --candidates candidates.jsonl.gz --max 5000
-"""
-
 import argparse
 import itertools
 import json
@@ -87,11 +61,7 @@ def grid_search(
     scored: list[CandidateScore],
     proxy_map: dict,
 ) -> list[dict]:
-    """
-    Search over a coarse grid of weight combinations.
-    Constraint: weights must sum to 1.0.
-    """
-    # Career and skills are the dominant signals; we vary them the most.
+    # Career and skills are the dominant signals.
     # Education and location are fixed at their small values.
     career_vals   = [0.28, 0.32, 0.35, 0.38, 0.42]
     skills_vals   = [0.22, 0.26, 0.30, 0.34]

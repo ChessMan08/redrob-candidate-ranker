@@ -1,13 +1,4 @@
-#!/usr/bin/env python3
-"""
-show_top100.py — Print a human-readable summary of your top-100 candidates.
-Use this to manually review before submitting.
-
-Usage:
-    python scripts/show_top100.py --candidates candidates.jsonl
-    python scripts/show_top100.py --candidates candidates.jsonl --csv submission.csv
-"""
-
+# show_top100.py: Print a human-readable summary of your top-100 candidates.
 import argparse
 import csv
 import sys
@@ -55,7 +46,7 @@ def main():
     scored  = tfidf_rerank(scored, top_n=500)
 
     print(f"\n{'='*80}")
-    print(f"TOP {args.top} CANDIDATES — MANUAL REVIEW")
+    print(f"TOP {args.top} CANDIDATES - MANUAL REVIEW")
     print(f"{'='*80}")
     print(f"{'Rk':>3}  {'ID':12}  {'Title':35}  {'Company':20}  {'YoE':4}  {'Score':6}")
     print(f"{'':3}  {'':12}  {'Car':5} {'Sk':5} {'Beh':5} {'Loc':5}  "

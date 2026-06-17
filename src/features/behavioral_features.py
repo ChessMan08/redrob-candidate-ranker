@@ -1,19 +1,3 @@
-"""
-behavioral_features.py — Platform availability and engagement scorer.
-
-The JD explicitly says: "a perfect-on-paper candidate who hasn't logged in
-for 6 months and has a 5% recruiter response rate is, for hiring purposes,
-not actually available. Down-weight them appropriately."
-
-This module encodes that logic precisely.
-
-Two sub-scores are returned:
-  1. availability_score  — is this person reachable RIGHT NOW?
-  2. engagement_score    — external validation (GitHub, saved by recruiters, etc.)
-
-They're blended 60/40 in the composite.
-"""
-
 from __future__ import annotations
 
 from datetime import date
@@ -21,11 +5,7 @@ from typing import Dict, Tuple
 
 from src.config.settings import ACTIVITY_SCORE, TODAY
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Availability score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _days_since_active(last_active: date | None) -> int:
     if last_active is None:
         return 999
@@ -40,14 +20,10 @@ def _activity_delta(days: int) -> float:
 
 
 def score_availability(sig: Dict) -> Tuple[float, Dict]:
-    """
-    Score [0, 100] capturing how likely the candidate is to respond
-    to a recruiter approach today.
-    """
     score = 50.0
     breakdown = {}
 
-    # 1. Last active date (major signal — 35 pts range)
+    # 1. Last active date (major signal - 35 pts range)
     days = _days_since_active(sig.get("last_active_date"))
     activity_d = _activity_delta(days)
     score += activity_d
@@ -62,7 +38,7 @@ def score_availability(sig: Dict) -> Tuple[float, Dict]:
         score -= 5.0
         breakdown["open_to_work"] = False
 
-    # 3. Recruiter response rate (20 pts range)
+    # 3. Recruiter response rate
     rrr = sig.get("recruiter_response_rate", 0.5)
     if rrr >= 0.75:
         rrr_d = +15.0
@@ -73,12 +49,12 @@ def score_availability(sig: Dict) -> Tuple[float, Dict]:
     elif rrr >= 0.10:
         rrr_d = -10.0
     else:
-        rrr_d = -20.0   # ghost-level response rate
+        rrr_d = -20.0
     score += rrr_d
     breakdown["recruiter_response_rate"] = rrr
     breakdown["rrr_delta"] = rrr_d
 
-    # 4. Notice period (15 pts range)
+    # 4. Notice period
     notice = sig.get("notice_period_days", 90)
     if notice <= 30:
         notice_d = +10.0
@@ -94,12 +70,12 @@ def score_availability(sig: Dict) -> Tuple[float, Dict]:
     breakdown["notice_period_days"] = notice
     breakdown["notice_delta"] = notice_d
 
-    # 5. Profile completeness (soft ±7.5 pts)
+    # 5. Profile completeness
     completeness = sig.get("profile_completeness_score", 60.0)
     score += (completeness - 60.0) * 0.25
     breakdown["profile_completeness"] = completeness
 
-    # 6. Avg response time (small signal)
+    # 6. Avg response time
     rt = sig.get("avg_response_time_hours", 48.0)
     if rt <= 4:
         score += 5.0
@@ -111,22 +87,15 @@ def score_availability(sig: Dict) -> Tuple[float, Dict]:
 
     return round(min(100.0, max(0.0, score)), 2), breakdown
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Engagement / external-validation score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_engagement(sig: Dict) -> Tuple[float, Dict]:
-    """
-    Score [0, 100] capturing external validation and engagement quality.
-    """
     score = 50.0
     breakdown = {}
 
-    # 1. GitHub activity (JD says "external validation" matters for this role)
+    # 1. GitHub activity
     github = sig.get("github_activity_score", -1.0)
     if github == -1.0:
-        # No GitHub linked — mild negative (JD: needs external validation)
+        # No GitHub linked
         github_d = -5.0
     elif github >= 70:
         github_d = +25.0
@@ -140,7 +109,7 @@ def score_engagement(sig: Dict) -> Tuple[float, Dict]:
     breakdown["github_score"] = github
     breakdown["github_delta"] = github_d
 
-    # 2. Saved by recruiters in last 30d (peer validation)
+    # 2. Saved by recruiters in last 30d
     saved = sig.get("saved_by_recruiters_30d", 0)
     if saved >= 15:
         saved_d = +15.0
@@ -153,7 +122,7 @@ def score_engagement(sig: Dict) -> Tuple[float, Dict]:
     score += saved_d
     breakdown["saved_by_recruiters"] = saved
 
-    # 3. Interview completion rate (reliability)
+    # 3. Interview completion rate
     icr = sig.get("interview_completion_rate", 0.7)
     if icr >= 0.85:
         icr_d = +10.0
@@ -166,14 +135,14 @@ def score_engagement(sig: Dict) -> Tuple[float, Dict]:
     score += icr_d
     breakdown["interview_completion_rate"] = icr
 
-    # 4. Applications submitted (shows active job search)
+    # 4. Applications submitted
     apps = sig.get("applications_submitted_30d", 0)
     if apps >= 5:
         score += 5.0
     elif apps >= 2:
         score += 2.0
 
-    # 5. Verified contact info (basic trust signal)
+    # 5. Verified contact info
     verified = (sig.get("verified_email", False) and sig.get("verified_phone", False))
     if verified:
         score += 5.0
@@ -187,31 +156,15 @@ def score_engagement(sig: Dict) -> Tuple[float, Dict]:
 
     return round(min(100.0, max(0.0, score)), 2), breakdown
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Combined behavioral score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_behavioral(sig: Dict) -> Tuple[float, Dict]:
-    """
-    Blended behavioral score (60% availability, 40% engagement).
-    """
     avail, avail_bd  = score_availability(sig)
     engage, engage_bd = score_engagement(sig)
     blended = 0.60 * avail + 0.40 * engage
     return round(blended, 2), {"availability": avail_bd, "engagement": engage_bd}
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Hard-gate multiplier (applied AFTER composite scoring)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def behavioral_multiplier(sig: Dict) -> float:
-    """
-    Returns a scalar in [0.5, 1.0] to multiply the composite score.
-    Only applied in extreme unavailability cases — the signal is already
-    encoded in behavioral_score, but these cases warrant an extra kick.
-    """
     multiplier = 1.0
 
     days = _days_since_active(sig.get("last_active_date"))

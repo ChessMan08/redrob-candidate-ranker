@@ -1,16 +1,3 @@
-"""
-parallel.py — CPU-parallel batch processing for scoring 100K candidates.
-
-Uses ProcessPoolExecutor with chunked work to maximise CPU utilisation
-while staying within the 16 GB RAM constraint.
-
-Memory note:
-  100K candidates × ~5 KB each ≈ 500 MB loaded.
-  After scoring each chunk the full candidate dict is detached from the
-  returned CandidateScore (candidate=None) to free memory early.
-  The full dict is kept only for the top-N final candidates.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -24,16 +11,10 @@ from src.scoring.composite import score_candidate, CandidateScore
 
 logger = logging.getLogger(__name__)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Worker function (must be importable at module level for pickle)
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Worker function
 def _score_chunk(raw_chunk: List[dict]) -> List[dict]:
-    """
-    Worker: clean + score a chunk of raw candidate dicts.
-    Returns lightweight dicts (no full candidate payload) for fast pickling.
-    """
+    # Worker: clean + score a chunk of raw candidate dicts.
+    # Returns lightweight dicts for fast pickling.
     results = []
     for raw in raw_chunk:
         try:
@@ -65,11 +46,7 @@ def _score_chunk(raw_chunk: List[dict]) -> List[dict]:
             logger.warning("Error scoring %s: %s", cid, exc)
     return results
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
-
 def parallel_score(
     raw_candidates: List[dict],
     n_workers: Optional[int] = None,
@@ -77,22 +54,6 @@ def parallel_score(
     top_n_to_keep_full: int = 500,
     show_progress: bool = True,
 ) -> List[CandidateScore]:
-    """
-    Score all candidates in parallel, return sorted CandidateScore list.
-
-    Parameters
-    ----------
-    raw_candidates         : raw (uncleaned) candidate dicts
-    n_workers              : CPU workers; default = min(8, cpu_count)
-    chunk_size             : records per worker task; default = auto
-    top_n_to_keep_full     : re-attach full candidate dict only for top-N
-                             (saves RAM for the rest)
-    show_progress          : show tqdm bar if installed
-
-    Returns
-    -------
-    CandidateScore list sorted by composite descending.
-    """
     n_workers  = n_workers or min(8, multiprocessing.cpu_count())
     total      = len(raw_candidates)
     chunk_size = chunk_size or max(500, math.ceil(total / (n_workers * 4)))
@@ -172,10 +133,6 @@ def sequential_score(
     raw_candidates: List[dict],
     show_progress: bool = True,
 ) -> List[CandidateScore]:
-    """
-    Single-process fallback (safer for small datasets or debugging).
-    Cleans + scores inline; keeps full candidate dict for all records.
-    """
     from src.data.preprocessor import clean_candidates
     from src.scoring.composite import score_candidates
 

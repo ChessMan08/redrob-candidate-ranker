@@ -1,30 +1,17 @@
-"""
-settings.py — Central configuration for the Redrob candidate ranker.
-
-All numeric weights, keyword lists, and thresholds live here so the
-rest of the code stays clean.  Change weights here; re-run rank.py.
-"""
-
 from datetime import date
 from pathlib import Path
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Paths
-# ─────────────────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 ARTIFACTS_DIR.mkdir(exist_ok=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Runtime date (used for recency calculations)
-# ─────────────────────────────────────────────────────────────────────────────
+# Runtime date
 TODAY: date = date.today()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Composite score weights  (must sum to 1.0)
-# ─────────────────────────────────────────────────────────────────────────────
+# Composite score weights
 WEIGHTS = {
-    "career":       0.35,   # company type + title type — primary discriminator
+    "career":       0.35,   # company type + title type - primary discriminator
     "skills":       0.30,   # ML/retrieval skills with credibility gating
     "experience":   0.13,   # YoE in the sweet-spot band
     "behavioral":   0.12,   # platform activity + availability
@@ -33,12 +20,8 @@ WEIGHTS = {
 }
 assert abs(sum(WEIGHTS.values()) - 1.0) < 1e-9, "Weights must sum to 1.0"
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Company & Industry Lists
-# ─────────────────────────────────────────────────────────────────────────────
 
-# JD explicitly disqualifies candidates whose ENTIRE career is at these firms.
-# We penalise per-role if the company appears in this list.
 IT_SERVICES_COMPANIES = frozenset({
     "tcs", "tata consultancy", "tata consultancy services",
     "infosys", "wipro", "accenture", "cognizant",
@@ -69,8 +52,8 @@ PRODUCT_COMPANIES = frozenset({
     "groww", "upstox", "zerodha", "angel one", "smallcase",
     "cleartax", "urban company", "licious", "curefit",
     "pied piper", "initech", "hooli",                   # fictional but non-IT-services
-    "acme corp", "wayne enterprises", "dunder mifflin", # fictional — neutral not positive
-    "stark industries",                                  # fictional — neutral
+    "acme corp", "wayne enterprises", "dunder mifflin", # fictional - neutral not positive
+    "stark industries",                                  # fictional - neutral
 })
 
 # Positive-signal industries
@@ -94,10 +77,7 @@ BAD_INDUSTRIES = frozenset({
     "business process management", "staffing",
 })
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Skills taxonomy
-# ─────────────────────────────────────────────────────────────────────────────
-
 # Tier 1: directly required by JD
 TIER1_SKILLS = frozenset({
     # Vector/embedding retrieval
@@ -169,9 +149,7 @@ DOMAIN_KEYWORDS_IN_DESCRIPTION = [
     "production ml", "deployed", "shipped",
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Proficiency → numeric mapping
-# ─────────────────────────────────────────────────────────────────────────────
 PROFICIENCY_VALUE = {
     "beginner":     0.30,
     "intermediate": 0.60,
@@ -179,9 +157,7 @@ PROFICIENCY_VALUE = {
     "expert":       1.00,
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ML title keywords (positive for this JD)
-# ─────────────────────────────────────────────────────────────────────────────
+# ML title keywords
 ML_TITLE_TERMS = frozenset({
     "ml engineer", "machine learning engineer", "machine learning",
     "ai engineer", "artificial intelligence",
@@ -210,9 +186,7 @@ NON_IC_TITLE_TERMS = frozenset({
     "civil engineer", "mechanical engineer",
 })
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Location preferences
-# ─────────────────────────────────────────────────────────────────────────────
 PREFERRED_CITIES = frozenset({
     "noida", "delhi ncr", "delhi", "new delhi",
     "gurgaon", "gurugram", "faridabad",
@@ -223,9 +197,7 @@ PREFERRED_CITIES = frozenset({
     "chennai", "kolkata",
 })
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Education
-# ─────────────────────────────────────────────────────────────────────────────
 RELEVANT_EDU_FIELDS = frozenset({
     "computer science", "computer engineering",
     "information technology", "information science",
@@ -243,10 +215,8 @@ EDU_TIER_SCORE = {
     "unknown": 45,
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Behavioral / availability thresholds
-# ─────────────────────────────────────────────────────────────────────────────
-# Days since last active → score delta
+# Days since last active - score delta
 ACTIVITY_SCORE = [
     (14,  +20),
     (30,  +15),
@@ -257,25 +227,18 @@ ACTIVITY_SCORE = [
     (999, -35),
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Honeypot detection thresholds
-# ─────────────────────────────────────────────────────────────────────────────
 HONEYPOT_HIGH_ENDORSE_ZERO_DUR_THRESHOLD = 15   # endorsements > X with duration == 0
 HONEYPOT_EXPERT_LOW_ASSESS_THRESHOLD     = 25   # expert + assessment < X
 HONEYPOT_ADVANCED_LOW_ASSESS_THRESHOLD   = 15   # advanced + assessment < X
 HONEYPOT_MASS_EXPERT_COUNT               = 8    # more than N expert skills total
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Salary budget (INR LPA) — used as soft filter
-# Redrob is a Series A company; likely budget ~30-60 LPA for this role
-# ─────────────────────────────────────────────────────────────────────────────
+# Salary budget (INR LPA) 
 SALARY_BUDGET_MAX_LPA = 80.0   # Candidates expecting > this are penalised
 SALARY_BUDGET_MIN_LPA = 15.0   # Candidates expecting < this signal mismatch
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TF-IDF re-ranking settings
-# ─────────────────────────────────────────────────────────────────────────────
 TFIDF_TOP_N_FOR_RERANK = 500    # Score all candidates, re-rank top-N with TF-IDF
-TFIDF_BLEND_WEIGHT     = 0.25   # structured=0.75, tfidf=0.25  (increased for better top-10 separation)
+TFIDF_BLEND_WEIGHT     = 0.25   # structured=0.75, tfidf=0.25 
 TFIDF_MAX_FEATURES     = 8000
 TFIDF_NGRAM_RANGE      = (1, 2)

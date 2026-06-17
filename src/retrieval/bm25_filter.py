@@ -1,20 +1,3 @@
-"""
-bm25_filter.py — Optional BM25 pre-filter.
-
-For 100K candidates, the structured scorer runs in ~60s on CPU, so BM25
-pre-filtering is NOT required for the 5-minute budget.
-
-However, if you extend this to 1M+ candidates or want a fast first-pass
-retrieval layer, this module provides a BM25 index over candidate text.
-
-Usage pattern (not used in default rank.py pipeline):
-  index = build_bm25_index(candidates)
-  top_ids = bm25_retrieve(index, jd_query, top_k=2000)
-  top_candidates = [c for c in candidates if c['candidate_id'] in top_ids]
-
-The BM25 query is built from key JD terms — NOT the full JD text.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -22,7 +5,7 @@ from typing import Dict, List, Set
 
 logger = logging.getLogger(__name__)
 
-# JD-focused BM25 query terms (high precision, not recall)
+# JD-focused BM25 query terms
 BM25_QUERY_TERMS = [
     "embeddings", "retrieval", "vector", "search", "ranking",
     "faiss", "pinecone", "qdrant", "weaviate", "milvus",
@@ -63,10 +46,6 @@ class BM25Index:
 
 
 def build_bm25_index(candidates: List[Dict]) -> "BM25Index | None":
-    """
-    Build a BM25 index from a list of cleaned candidates.
-    Returns None if rank-bm25 is not installed.
-    """
     try:
         from rank_bm25 import BM25Okapi
     except ImportError:

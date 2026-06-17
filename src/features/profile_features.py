@@ -1,10 +1,3 @@
-"""
-profile_features.py — Structured profile features: experience, location, education.
-
-These are secondary signals (combined ~13% of final score) but important
-for calibrating the top of the list correctly.
-"""
-
 from __future__ import annotations
 
 from typing import Dict, List, Tuple
@@ -15,17 +8,8 @@ from src.config.settings import (
     EDU_TIER_SCORE,
 )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Experience score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_experience(years_of_experience: float) -> Tuple[float, Dict]:
-    """
-    Score [0, 100] based on years of experience.
-    JD sweet spot: 5–9 years (explicitly stated).
-    Hard floor: candidates < 3 years score poorly.
-    """
     yoe = years_of_experience
 
     if   6.0 <= yoe <= 8.0:  score = 100.0
@@ -35,23 +19,14 @@ def score_experience(years_of_experience: float) -> Tuple[float, Dict]:
     elif 9.0 < yoe <= 11.0:  score = 73.0
     elif 3.0 <= yoe < 4.0:   score = 57.0
     elif 11.0 < yoe <= 13.0: score = 57.0
-    elif yoe > 13.0:          score = 43.0   # over-experienced; JD notes risk
+    elif yoe > 13.0:          score = 43.0   # over-experienced;
     elif yoe >= 2.0:          score = 28.0
     else:                     score = 12.0
 
     return round(score, 2), {"years_of_experience": yoe}
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Location score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_location(profile: Dict, sig: Dict) -> Tuple[float, Dict]:
-    """
-    Score [0, 100] for location fit.
-    JD: Pune/Noida preferred; open to other Tier-1 Indian cities.
-    No visa sponsorship → outside India candidates heavily penalised.
-    """
     location        = (profile.get("location") or "").lower()
     country         = (profile.get("country")  or "").lower()
     willing_relocate= sig.get("willing_to_relocate", False)
@@ -84,16 +59,8 @@ def score_location(profile: Dict, sig: Dict) -> Tuple[float, Dict]:
         "willing_to_relocate": willing_relocate,
     }
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Education score
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_education(education: List[Dict]) -> Tuple[float, Dict]:
-    """
-    Score [0, 100] based on best education entry.
-    Soft signal: tier_1 CS is a bonus; tier_4 non-CS is neutral.
-    """
     if not education:
         return 50.0, {"reason": "no_education_listed"}
 
@@ -111,7 +78,7 @@ def score_education(education: List[Dict]) -> Tuple[float, Dict]:
         field_match = any(f in field for f in RELEVANT_EDU_FIELDS)
         field_bonus = +15.0 if field_match else -5.0
 
-        # Degree level bonus (only if field is relevant)
+        # Degree level bonus
         degree_bonus = 0.0
         if any(d in degree for d in ("m.tech", "m.s.", "ms", "mtech", "m.e.", "me")):
             degree_bonus = 8.0 if field_match else 2.0
@@ -130,24 +97,15 @@ def score_education(education: List[Dict]) -> Tuple[float, Dict]:
 
     return round(best_score, 2), {"best_edu": best_label}
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Salary fit (soft signal, small penalty for extreme mismatch)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def salary_fit_multiplier(sig: Dict) -> float:
-    """
-    Returns a scalar [0.85, 1.0].
-    Mild penalty if salary expectation is wildly above budget.
-    (No hard filter — we don't want to miss good candidates due to bad data.)
-    """
     sal_max = sig.get("salary_max_lpa", 0.0)
     sal_min = sig.get("salary_min_lpa", 0.0)
 
-    # Use the lower bound for fit calculation (max could be aspirational)
+    # Use the lower bound for fit calculation
     if sal_min > 80.0:
         return 0.90  # expecting very high salary, Series A may struggle
     if sal_min < 5.0 and sal_min > 0.0:
-        return 0.93  # expecting very low → likely mismatch on seniority
+        return 0.93  # expecting very low -> likely mismatch on seniority
 
     return 1.0

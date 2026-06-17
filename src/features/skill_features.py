@@ -1,18 +1,3 @@
-"""
-skill_features.py — Skill-based feature extraction and scoring.
-
-Key design decisions:
-  1. Credibility gating: a skill with 0 duration AND 0 endorsements is ignored.
-     This naturally rejects keyword stuffers (honeypot defense).
-  2. Tier weighting: Tier-1 retrieval/ML skills score ~2x Tier-2, ~5x Tier-3.
-  3. Assessment bonus: when a Redrob skill assessment score exists, it modifies
-     the credibility multiplier (20% weight on assessment, 80% on duration+endorsements).
-  4. Anti-skill penalty: if non-technical skills dominate a profile, the score is
-     halved — catches operations managers who list ML keywords.
-  5. Endorsement-duration credibility is a geometric mean to penalise
-     high endorsement / zero duration (or vice versa) profiles.
-"""
-
 from __future__ import annotations
 
 import math
@@ -26,11 +11,7 @@ from src.config.settings import (
     PROFICIENCY_VALUE,
 )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Credibility helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _duration_factor(months: int) -> float:
     """Saturates at 24 months (2 years of use = full credit)."""
     return min(1.0, months / 24.0) if months > 0 else 0.0
@@ -42,16 +23,10 @@ def _endorsement_factor(n: int) -> float:
 
 
 def _credibility(duration: int, endorsements: int, assessment: float | None) -> float:
-    """
-    Credibility in [0, 1].
-
-    Uses a soft geometric mean of duration and endorsement factors so that
-    BOTH being zero collapses to zero (gating function).
-    """
     d = _duration_factor(duration)
     e = _endorsement_factor(endorsements)
 
-    # If both are zero → uncredentialed; return 0
+    # If both are zero -> uncredentialed; return 0
     if d == 0.0 and e == 0.0:
         return 0.0
 
@@ -64,21 +39,8 @@ def _credibility(duration: int, endorsements: int, assessment: float | None) -> 
 
     return min(1.0, ge)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Tier classifier
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _classify_skill(name_lower: str) -> Tuple[int, float]:
-    """
-    Returns (tier, raw_weight).
-    tier 1 → weight 15
-    tier 2 → weight 8
-    tier 3 → weight 3
-    anti   → tier -1, weight 0 (counted for penalty)
-    none   → tier 0, weight 1
-    """
-    # Check tier 1 first (most specific)
     if name_lower in TIER1_SKILLS or any(t in name_lower for t in TIER1_SKILLS):
         return 1, 15.0
     if name_lower in TIER2_SKILLS or any(t in name_lower for t in TIER2_SKILLS):
@@ -89,28 +51,11 @@ def _classify_skill(name_lower: str) -> Tuple[int, float]:
         return -1, 0.0
     return 0, 1.0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
-
 def score_skills(
     skills: List[Dict],
     assessments: Dict[str, float],
 ) -> Tuple[float, Dict]:
-    """
-    Compute a credibility-weighted skill score in [0, 100].
-
-    Parameters
-    ----------
-    skills      : cleaned skills list (each has name, proficiency, endorsements,
-                  duration_months)
-    assessments : {skill_name_raw: score_0_100} from redrob_signals
-
-    Returns
-    -------
-    (score, breakdown)
-    """
     tier1_pts = 0.0
     tier2_pts = 0.0
     tier3_pts = 0.0
@@ -120,13 +65,13 @@ def score_skills(
     matched_tier2_names: List[str] = []
 
     for sk in skills:
-        name_lower = sk["name"]               # already lowercased in preprocessor
+        name_lower = sk["name"]    
         name_raw   = sk.get("name_raw", sk["name"])
         proficiency_val = PROFICIENCY_VALUE.get(sk["proficiency"], 0.30)
         duration    = sk["duration_months"]
         endorsements= sk["endorsements"]
 
-        # Assessment lookup (raw name, case-insensitive)
+        # Assessment lookup
         assessment = None
         for assess_key, assess_val in assessments.items():
             if assess_key.lower() == name_raw.lower():
@@ -136,8 +81,6 @@ def score_skills(
         # Credibility gate
         cred = _credibility(duration, endorsements, assessment)
         if cred == 0.0:
-            # Skill has no supporting evidence → skip
-            # (but still count anti-skills for the penalty calculation)
             if name_lower in ANTI_SKILLS:
                 anti_count += 1
             continue
@@ -222,7 +165,7 @@ def top_tier2_skills(
     assessments: Dict[str, float],
     n: int = 3,
 ) -> List[str]:
-    """Return the top N credentialed Tier-2 skill names (for reasoning text)."""
+    """Return the top N credentialed Tier-2 skill names."""
     tier2: List[Tuple[float, str]] = []
 
     for sk in skills:
